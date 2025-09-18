@@ -51,9 +51,7 @@ use winit_core::error::RequestError;
 use winit_core::icon::{Icon, RgbaIcon};
 use winit_core::monitor::{Fullscreen, MonitorHandle as CoreMonitorHandle, MonitorHandleProvider};
 use winit_core::window::{
-    CursorGrabMode, ImeCapabilities, ImeRequest, ImeRequestError, ResizeDirection, Theme,
-    UserAttentionType, Window as CoreWindow, WindowAttributes, WindowButtons, WindowId,
-    WindowLevel,
+    CursorGrabMode, ImeCapabilities, ImeRequest, ImeRequestError, ResizeDirection, Theme, UserAttentionType, Window as CoreWindow, WindowAttributes, WindowButtons, WindowDecorations, WindowId, WindowLevel
 };
 
 use crate::dark_mode::try_theme;
@@ -960,21 +958,29 @@ impl CoreWindow for Window {
         });
     }
 
-    fn set_decorations(&self, decorations: bool) {
+    fn set_decorations(&self, decorations: WindowDecorations) {
         let window = self.window;
         let window_state = Arc::clone(&self.window_state);
 
         self.thread_executor.execute_in_thread(move || {
             let _ = &window;
             WindowState::set_window_flags(window_state.lock().unwrap(), window.hwnd(), |f| {
-                f.set(WindowFlags::MARKER_DECORATIONS, decorations)
+                f.set(WindowFlags::MARKER_DECORATION_TOPBAR, decorations.contains(WindowDecorations::TOPBAR));
+                f.set(WindowFlags::MARKER_DECORATION_BORDER, decorations.contains(WindowDecorations::BORDER));
             });
         });
     }
 
-    fn is_decorated(&self) -> bool {
+    fn is_decorated(&self) -> WindowDecorations {
+        let mut decorations = WindowDecorations::empty();
         let window_state = self.window_state_lock();
-        window_state.window_flags.contains(WindowFlags::MARKER_DECORATIONS)
+        if window_state.window_flags.contains(WindowFlags::MARKER_DECORATION_TOPBAR) {
+            decorations |= WindowDecorations::TOPBAR;
+        }
+        if window_state.window_flags.contains(WindowFlags::MARKER_DECORATION_BORDER) {
+            decorations |= WindowDecorations::BORDER;
+        }
+       decorations
     }
 
     fn set_window_level(&self, level: WindowLevel) {
@@ -1377,7 +1383,8 @@ unsafe fn init(
     unsafe { register_window_class(&class_name) };
 
     let mut window_flags = WindowFlags::empty();
-    window_flags.set(WindowFlags::MARKER_DECORATIONS, attributes.decorations);
+    window_flags.set(WindowFlags::MARKER_DECORATION_TOPBAR, attributes.decorations.contains(WindowDecorations::TOPBAR));
+    window_flags.set(WindowFlags::MARKER_DECORATION_BORDER, attributes.decorations.contains(WindowDecorations::BORDER));
     window_flags.set(WindowFlags::MARKER_UNDECORATED_SHADOW, win_attributes.decoration_shadow);
     window_flags
         .set(WindowFlags::ALWAYS_ON_TOP, attributes.window_level == WindowLevel::AlwaysOnTop);

@@ -62,7 +62,7 @@ pub struct WindowAttributes {
     pub visible: bool,
     pub transparent: bool,
     pub blur: bool,
-    pub decorations: bool,
+    pub decorations: WindowDecorations,
     pub window_icon: Option<Icon>,
     pub preferred_theme: Option<Theme>,
     pub content_protected: bool,
@@ -251,11 +251,11 @@ impl WindowAttributes {
 
     /// Sets whether the window should have a border, a title bar, etc.
     ///
-    /// The default is `true`.
+    /// The default is [`WindowDecorations::all`]
     ///
     /// See [`Window::set_decorations`] for details.
     #[inline]
-    pub fn with_decorations(mut self, decorations: bool) -> Self {
+    pub fn with_decorations(mut self, decorations: WindowDecorations) -> Self {
         self.decorations = decorations;
         self
     }
@@ -415,7 +415,7 @@ impl Default for WindowAttributes {
         WindowAttributes {
             enabled_buttons: WindowButtons::all(),
             title: String::from("winit window"),
-            decorations: true,
+            decorations: WindowDecorations::all(),
             resizable: true,
             visible: true,
             active: true,
@@ -1015,7 +1015,7 @@ pub trait Window: AsAny + Send + Sync + fmt::Debug {
     /// - **Wayland:** Can return `Borderless(None)` when there are no monitors.
     fn fullscreen(&self) -> Option<Fullscreen>;
 
-    /// Turn window decorations on or off.
+    /// Sets the enabled window decorations.
     ///
     /// Enable/disable window decorations provided by the server or Winit.
     /// By default this is enabled. Note that fullscreen windows and windows on
@@ -1024,7 +1024,7 @@ pub trait Window: AsAny + Send + Sync + fmt::Debug {
     /// ## Platform-specific
     ///
     /// - **iOS / Android / Web:** No effect.
-    fn set_decorations(&self, decorations: bool);
+    fn set_decorations(&self, decorations: WindowDecorations);
 
     /// Gets the window's current decorations state.
     ///
@@ -1034,7 +1034,7 @@ pub trait Window: AsAny + Send + Sync + fmt::Debug {
     /// ## Platform-specific
     ///
     /// - **iOS / Android / Web:** Always returns `true`.
-    fn is_decorated(&self) -> bool;
+    fn is_decorated(&self) -> WindowDecorations;
 
     /// Change the window level.
     ///
@@ -1561,6 +1561,14 @@ pub enum UserAttentionType {
     /// - **Windows:** Flashes the taskbar button until the application is in focus.
     #[default]
     Informational,
+}
+
+bitflags::bitflags! {
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+    pub struct WindowDecorations: u32 {
+        const TOPBAR  = 1 << 0;
+        const BORDER  = 1 << 1;
+    }
 }
 
 bitflags::bitflags! {

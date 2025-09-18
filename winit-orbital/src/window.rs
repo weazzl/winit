@@ -6,7 +6,7 @@ use dpi::{PhysicalInsets, PhysicalPosition, PhysicalSize, Position, Size};
 use winit_core::cursor::Cursor;
 use winit_core::error::{NotSupportedError, RequestError};
 use winit_core::monitor::{Fullscreen, MonitorHandle as CoreMonitorHandle};
-use winit_core::window::{self, Window as CoreWindow, WindowId};
+use winit_core::window::{self, Window as CoreWindow, WindowDecorations, WindowId};
 
 use crate::event_loop::{ActiveEventLoop, EventLoopProxy};
 use crate::{RedoxSocket, WindowProperties};
@@ -71,7 +71,7 @@ impl Window {
             flag_str.push(ORBITAL_FLAG_TRANSPARENT);
         }
 
-        if !attrs.decorations {
+        if !(attrs.decorations.contains(WindowDecorations::BORDER)) {
             flag_str.push(ORBITAL_FLAG_BORDERLESS);
         }
 
@@ -350,13 +350,16 @@ impl CoreWindow for Window {
     }
 
     #[inline]
-    fn set_decorations(&self, decorations: bool) {
-        let _ = self.set_flag(ORBITAL_FLAG_BORDERLESS, !decorations);
+    fn set_decorations(&self, decorations: WindowDecorations) {
+        let _ = self.set_flag(ORBITAL_FLAG_BORDERLESS, !decorations.contains(WindowDecorations::BORDER));
     }
 
     #[inline]
-    fn is_decorated(&self) -> bool {
-        !self.get_flag(ORBITAL_FLAG_BORDERLESS).unwrap_or(false)
+    fn is_decorated(&self) -> WindowDecorations {
+        if self.get_flag(ORBITAL_FLAG_BORDERLESS).is_ok() {
+            return WindowDecorations::empty();
+        }
+        WindowDecorations::BORDER
     }
 
     #[inline]

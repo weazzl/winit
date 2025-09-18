@@ -12,8 +12,7 @@ use winit_core::error::{NotSupportedError, RequestError};
 use winit_core::icon::Icon;
 use winit_core::monitor::{Fullscreen, MonitorHandle as CoremMonitorHandle};
 use winit_core::window::{
-    CursorGrabMode, ImeRequestError, ResizeDirection, Theme, UserAttentionType,
-    Window as RootWindow, WindowAttributes, WindowButtons, WindowId, WindowLevel,
+    CursorGrabMode, ImeRequestError, ResizeDirection, Theme, UserAttentionType, Window as RootWindow, WindowAttributes, WindowButtons, WindowDecorations, WindowId, WindowLevel
 };
 
 use crate::event_loop::ActiveEventLoop;
@@ -292,12 +291,12 @@ impl RootWindow for Window {
         })
     }
 
-    fn set_decorations(&self, _: bool) {
+    fn set_decorations(&self, _: WindowDecorations) {
         // Intentionally a no-op, no canvas decorations
     }
 
-    fn is_decorated(&self) -> bool {
-        true
+    fn is_decorated(&self) -> WindowDecorations {
+        WindowDecorations::all()
     }
 
     fn set_window_level(&self, _: WindowLevel) {

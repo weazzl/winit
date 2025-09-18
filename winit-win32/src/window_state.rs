@@ -128,13 +128,14 @@ bitflags! {
         const IGNORE_CURSOR_EVENT = 1 << 18;
 
         /// Fully decorated window (incl. caption, border and drop shadow).
-        const MARKER_DECORATIONS = 1 << 19;
+        const MARKER_DECORATION_TOPBAR = 1 << 19;
+        const MARKER_DECORATION_BORDER = 1 << 20;
         /// Drop shadow for undecorated windows.
-        const MARKER_UNDECORATED_SHADOW = 1 << 20;
+        const MARKER_UNDECORATED_SHADOW = 1 << 21;
 
-        const MARKER_ACTIVATE = 1 << 21;
+        const MARKER_ACTIVATE = 1 << 22;
 
-        const CLIP_CHILDREN = 1 << 22;
+        const CLIP_CHILDREN = 1 << 23;
 
         const EXCLUSIVE_FULLSCREEN_OR_MASK = WindowFlags::ALWAYS_ON_TOP.bits();
     }
@@ -297,8 +298,11 @@ impl WindowFlags {
             style |= WS_CHILD; // This is incompatible with WS_POPUP if that gets added eventually.
 
             // Remove decorations window styles for child
-            if !self.contains(WindowFlags::MARKER_DECORATIONS) {
-                style &= !(WS_CAPTION | WS_BORDER);
+            if !self.contains(WindowFlags::MARKER_DECORATION_TOPBAR) {
+                style &= !WS_CAPTION;
+            }
+             if !self.contains(WindowFlags::MARKER_DECORATION_BORDER) {
+                style &= !WS_BORDER;
                 style_ex &= !WS_EX_WINDOWEDGE;
             }
         }
@@ -446,8 +450,11 @@ impl WindowFlags {
 
             // Frameless style implemented by manually overriding the non-client area in
             // `WM_NCCALCSIZE`.
-            if !self.contains(WindowFlags::MARKER_DECORATIONS) {
-                style &= !(WS_CAPTION | WS_SIZEBOX);
+            if !self.contains(WindowFlags::MARKER_DECORATION_TOPBAR) {
+                style &= !WS_CAPTION;
+            }
+             if !self.contains(WindowFlags::MARKER_DECORATION_BORDER) {
+                style &= !WS_SIZEBOX;
             }
 
             util::win_to_err({
