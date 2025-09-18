@@ -113,7 +113,7 @@ pub struct WindowAttributes {
     pub visible: bool,
     pub transparent: bool,
     pub blur: bool,
-    pub decorations: bool,
+    pub decorations: WindowDecorations,
     pub window_icon: Option<Icon>,
     pub preferred_theme: Option<Theme>,
     pub resize_increments: Option<Size>,
@@ -145,7 +145,7 @@ impl Default for WindowAttributes {
             visible: true,
             transparent: false,
             blur: false,
-            decorations: true,
+            decorations: WindowDecorations::all(),
             window_level: Default::default(),
             window_icon: None,
             preferred_theme: None,
@@ -349,11 +349,11 @@ impl WindowAttributes {
 
     /// Sets whether the window should have a border, a title bar, etc.
     ///
-    /// The default is `true`.
+    /// The default is [`WindowDecorations::all`]
     ///
     /// See [`Window::set_decorations`] for details.
     #[inline]
-    pub fn with_decorations(mut self, decorations: bool) -> Self {
+    pub fn with_decorations(mut self, decorations: WindowDecorations) -> Self {
         self.decorations = decorations;
         self
     }
@@ -1148,7 +1148,7 @@ impl Window {
         self.window.maybe_wait_on_main(|w| w.fullscreen().map(|f| f.into()))
     }
 
-    /// Turn window decorations on or off.
+    /// Sets the enabled window decorations.
     ///
     /// Enable/disable window decorations provided by the server or Winit.
     /// By default this is enabled. Note that fullscreen windows and windows on
@@ -1158,8 +1158,9 @@ impl Window {
     ///
     /// - **iOS / Android / Web:** No effect.
     #[inline]
-    pub fn set_decorations(&self, decorations: bool) {
-        let _span = tracing::debug_span!("winit::Window::set_decorations", decorations).entered();
+    pub fn set_decorations(&self, decorations: WindowDecorations) {
+        let _span = tracing::debug_span!("winit::Window::set_decorations", 
+            decorations = ?decorations).entered();
         self.window.maybe_queue_on_main(move |w| w.set_decorations(decorations))
     }
 
@@ -1172,7 +1173,7 @@ impl Window {
     ///
     /// - **iOS / Android / Web:** Always returns `true`.
     #[inline]
-    pub fn is_decorated(&self) -> bool {
+    pub fn is_decorated(&self) -> WindowDecorations {
         let _span = tracing::debug_span!("winit::Window::is_decorated",).entered();
         self.window.maybe_wait_on_main(|w| w.is_decorated())
     }
@@ -1783,6 +1784,14 @@ pub enum UserAttentionType {
     /// - **Windows:** Flashes the taskbar button until the application is in focus.
     #[default]
     Informational,
+}
+
+bitflags::bitflags! {
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+    pub struct WindowDecorations: u32 {
+        const TOPBAR  = 1 << 0;
+        const BORDER  = 1 << 1;
+    }
 }
 
 bitflags::bitflags! {

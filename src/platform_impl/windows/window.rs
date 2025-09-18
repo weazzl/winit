@@ -69,8 +69,7 @@ use crate::platform_impl::platform::window_state::{
 };
 use crate::platform_impl::platform::{util, Fullscreen, SelectedCursor, WindowId};
 use crate::window::{
-    CursorGrabMode, ImePurpose, ResizeDirection, Theme, UserAttentionType, WindowAttributes,
-    WindowButtons, WindowLevel,
+    CursorGrabMode, ImePurpose, ResizeDirection, Theme, UserAttentionType, WindowAttributes, WindowButtons, WindowDecorations, WindowLevel
 };
 
 /// The Win32 implementation of the main `Window` object.
@@ -846,22 +845,30 @@ impl Window {
     }
 
     #[inline]
-    pub fn set_decorations(&self, decorations: bool) {
+    pub fn set_decorations(&self, decorations: WindowDecorations) {
         let window = self.window;
         let window_state = Arc::clone(&self.window_state);
 
         self.thread_executor.execute_in_thread(move || {
             let _ = &window;
             WindowState::set_window_flags(window_state.lock().unwrap(), window, |f| {
-                f.set(WindowFlags::MARKER_DECORATIONS, decorations)
+               f.set(WindowFlags::MARKER_DECORATION_TOPBAR, decorations.contains(WindowDecorations::TOPBAR));
+                f.set(WindowFlags::MARKER_DECORATION_BORDER, decorations.contains(WindowDecorations::BORDER));
             });
         });
     }
 
     #[inline]
-    pub fn is_decorated(&self) -> bool {
+    pub fn is_decorated(&self) -> WindowDecorations {
+        let mut decorations = WindowDecorations::empty();
         let window_state = self.window_state_lock();
-        window_state.window_flags.contains(WindowFlags::MARKER_DECORATIONS)
+        if window_state.window_flags.contains(WindowFlags::MARKER_DECORATION_TOPBAR) {
+            decorations |= WindowDecorations::TOPBAR;
+        }
+        if window_state.window_flags.contains(WindowFlags::MARKER_DECORATION_BORDER) {
+            decorations |= WindowDecorations::BORDER;
+        }
+       decorations
     }
 
     #[inline]
@@ -1310,7 +1317,8 @@ unsafe fn init(
     unsafe { register_window_class(&class_name) };
 
     let mut window_flags = WindowFlags::empty();
-    window_flags.set(WindowFlags::MARKER_DECORATIONS, attributes.decorations);
+    window_flags.set(WindowFlags::MARKER_DECORATION_TOPBAR, attributes.decorations.contains(WindowDecorations::TOPBAR));
+    window_flags.set(WindowFlags::MARKER_DECORATION_BORDER, attributes.decorations.contains(WindowDecorations::BORDER));
     window_flags.set(
         WindowFlags::MARKER_UNDECORATED_SHADOW,
         attributes.platform_specific.decoration_shadow,

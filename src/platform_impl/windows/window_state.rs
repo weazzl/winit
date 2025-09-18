@@ -17,7 +17,7 @@ use windows_sys::Win32::UI::WindowsAndMessaging::{
     WINDOW_EX_STYLE, WINDOW_STYLE, WS_BORDER, WS_CAPTION, WS_CHILD, WS_CLIPCHILDREN,
     WS_CLIPSIBLINGS, WS_EX_ACCEPTFILES, WS_EX_APPWINDOW, WS_EX_LAYERED, WS_EX_NOREDIRECTIONBITMAP,
     WS_EX_TOPMOST, WS_EX_TRANSPARENT, WS_EX_WINDOWEDGE, WS_MAXIMIZE, WS_MAXIMIZEBOX, WS_MINIMIZE,
-    WS_MINIMIZEBOX, WS_OVERLAPPEDWINDOW, WS_POPUP, WS_SIZEBOX, WS_SYSMENU, WS_VISIBLE,
+    WS_MINIMIZEBOX, WS_OVERLAPPEDWINDOW, WS_POPUP, WS_SIZEBOX, WS_SYSMENU, WS_VISIBLE, WS_THICKFRAME,
 };
 
 /// Contains information about states and the window that the callback is going to use.
@@ -116,13 +116,15 @@ bitflags! {
         const IGNORE_CURSOR_EVENT = 1 << 18;
 
         /// Fully decorated window (incl. caption, border and drop shadow).
-        const MARKER_DECORATIONS = 1 << 19;
+        const MARKER_DECORATION_TOPBAR = 1 << 19;
+        const MARKER_DECORATION_BORDER = 1 << 20;
+    
         /// Drop shadow for undecorated windows.
-        const MARKER_UNDECORATED_SHADOW = 1 << 20;
+        const MARKER_UNDECORATED_SHADOW = 1 << 21;
 
-        const MARKER_ACTIVATE = 1 << 21;
+        const MARKER_ACTIVATE = 1 << 22;
 
-        const CLIP_CHILDREN = 1 << 22;
+        const CLIP_CHILDREN = 1 << 23;
 
         const EXCLUSIVE_FULLSCREEN_OR_MASK = WindowFlags::ALWAYS_ON_TOP.bits();
     }
@@ -255,7 +257,14 @@ impl WindowFlags {
 
     pub fn to_window_styles(self) -> (WINDOW_STYLE, WINDOW_EX_STYLE) {
         // Required styles to properly support common window functionality like aero snap.
-        let mut style = WS_CAPTION | WS_BORDER | WS_CLIPSIBLINGS | WS_SYSMENU;
+        let decoration = if self.contains(WindowFlags::MARKER_DECORATION_TOPBAR) {
+            WS_CAPTION | WS_BORDER
+        } else if self.contains(WindowFlags::MARKER_DECORATION_BORDER) {
+            WS_THICKFRAME
+        } else {
+            0
+        };
+        let mut style = decoration | WS_CLIPSIBLINGS | WS_SYSMENU;
         let mut style_ex = WS_EX_WINDOWEDGE | WS_EX_ACCEPTFILES;
 
         if self.contains(WindowFlags::RESIZABLE) {
@@ -283,9 +292,13 @@ impl WindowFlags {
             style |= WS_CHILD; // This is incompatible with WS_POPUP if that gets added eventually.
 
             // Remove decorations window styles for child
-            if !self.contains(WindowFlags::MARKER_DECORATIONS) {
+            if !self.contains(WindowFlags::MARKER_DECORATION_TOPBAR) {
                 style &= !(WS_CAPTION | WS_BORDER);
-                style_ex &= !WS_EX_WINDOWEDGE;
+                if self.contains(WindowFlags::MARKER_DECORATION_BORDER) {
+                    style |= WS_THICKFRAME;
+                } else {
+                    style_ex &= !WS_EX_WINDOWEDGE;
+                }
             }
         }
         if self.contains(WindowFlags::POPUP) {
@@ -432,8 +445,13 @@ impl WindowFlags {
 
             // Frameless style implemented by manually overriding the non-client area in
             // `WM_NCCALCSIZE`.
-            if !self.contains(WindowFlags::MARKER_DECORATIONS) {
-                style &= !(WS_CAPTION | WS_SIZEBOX);
+            if !self.contains(WindowFlags::MARKER_DECORATION_TOPBAR) {
+                style &= !WS_CAPTION;
+                if self.contains(WindowFlags::MARKER_DECORATION_BORDER) {
+                    style |= WS_THICKFRAME;
+                } else {
+                    style &= !WS_SIZEBOX;
+                }
             }
 
             util::win_to_err({

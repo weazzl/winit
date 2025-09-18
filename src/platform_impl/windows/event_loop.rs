@@ -1159,7 +1159,7 @@ unsafe fn public_window_callback_inner(
     let callback = || match msg {
         WM_NCCALCSIZE => {
             let window_flags = userdata.window_state_lock().window_flags;
-            if wparam == 0 || window_flags.contains(WindowFlags::MARKER_DECORATIONS) {
+            if wparam == 0 || window_flags.contains(WindowFlags::MARKER_DECORATION_BORDER) {
                 result = ProcResult::DefWindowProc(wparam);
                 return;
             }
